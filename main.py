@@ -4,6 +4,9 @@ from selenium.webdriver.common.by import By
 
 
 def handler(event=None, context=None):
+
+    url = 'https://www.asurascans.com/#'
+
     options = webdriver.ChromeOptions()
     options.binary_location = '/opt/chrome/chrome'
     options.add_argument('--headless')
@@ -18,7 +21,64 @@ def handler(event=None, context=None):
     options.add_argument(f"--data-path={mkdtemp()}")
     options.add_argument(f"--disk-cache-dir={mkdtemp()}")
     options.add_argument("--remote-debugging-port=9222")
-    chrome = webdriver.Chrome("/opt/chromedriver",
+    browser = webdriver.Chrome("/opt/chromedriver",
                               options=options)
-    chrome.get("https://example.com/")
-    return chrome.find_element(by=By.XPATH, value="//html").text
+    browser.get(url)
+    cards = browser.find_elements(By.CSS_SELECTOR, '.uta')
+
+    print("cards: " + str(len(cards)))
+    series = []
+
+    for card in cards:
+        print("beginning for loop")
+        all_chaps = []
+
+        title = card.find_element(By.CSS_SELECTOR, '.luf > a').get_attribute('title')
+        series_link = card.find_element(By.CSS_SELECTOR, '.luf > a').get_attribute('href')
+        img_link = card.find_element(By.CSS_SELECTOR, '.imgu > a > img').get_attribute('src')
+
+        print("Got past basic card info: " + str(title))
+        print(series_link)
+        
+        chap_list = None
+        try:
+            chap_list = card.find_element(By.CSS_SELECTOR, '.Manhwa')
+        except:
+            print("Wasn't a Manhwa")
+        
+        try:
+            chap_list = card.find_element(By.CSS_SELECTOR, '.Manhua')
+        except:
+            print("Wasn't a Manhua")
+
+        print("Got past try catch")
+
+        chaps = chap_list.find_elements(By.TAG_NAME, 'li')
+
+        for chap in chaps:
+            time = chap.find_element(By.TAG_NAME, 'span').text
+            chap_num = chap.find_element(By.TAG_NAME, 'a').text
+            chap_link = chap.find_element(By.TAG_NAME, 'a').get_attribute('href')
+            chap_obj = {
+                "link": chap_link,
+                "time": time,
+                "chapter_number": chap_num
+            }
+            all_chaps.append(chap_obj)
+        print("all_chaps: " + str(len(all_chaps)))
+        print("Got past individual chaps")
+
+        series_obj = {
+            "scan_site": "Asura Scans",
+            "title": title,
+            "cover_img": img_link,
+            "series_link": series_link,
+            "chapters": all_chaps
+        }
+        series.append(series_obj)
+        print("series_obj: " + series_obj)
+    
+    print("end: " + series)
+    return series
+
+    
